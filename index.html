@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cabinet Médical — Présentation</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a1628; overflow: hidden; height: 100vh; }
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #0a1628;
+}
+
+/* ===== SCENES ===== */
+.scene {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.scene.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ===== PROGRESS ===== */
+#progress-bar {
+  position: fixed;
+  bottom: 0; left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #006666, #00cccc);
+  transition: width 0.1s linear;
+  z-index: 1000;
+}
+
+/* ===== DOTS ===== */
+#dots {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 1000;
+}
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+}
+.dot.active { background: #00cccc; transform: scale(1.3); }
+
+/* ===== NAV ARROWS ===== */
+#nav-prev, #nav-next {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  font-size: 20px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  transition: background 0.2s;
+}
+#nav-prev { left: 10px; }
+#nav-next { right: 10px; }
+#nav-prev:hover, #nav-next:hover { background: rgba(0,102,102,0.6); }
+
+/* ===== PAUSE BTN ===== */
+#pause-btn {
+  position: fixed;
+  top: 12px; right: 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+/* ===== SCENE BADGE ===== */
+.scene-badge {
+  position: absolute;
+  top: 12px; left: 12px;
+  background: rgba(0,102,102,0.85);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  z-index: 10;
+}
+
+/* ===== MOCK WINDOW ===== */
+.win {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  width: 100%;
+  max-width: 700px;
+}
+.win-bar {
+  background: #e0e0e0;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wb { width: 11px; height: 11px; border-radius: 50%; }
+.wb-r { background: #ff5f57; }
+.wb-y { background: #febc2e; }
+.wb-g { background: #28c840; }
+.win-bar-title {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== SIDEBAR ===== */
+.app-layout { display: flex; }
+.sidebar {
+  width: 160px;
+  min-width: 160px;
+  background: linear-gradient(180deg, #006666 0%, #001e2d 100%);
+  padding: 12px 0;
+  position: relative;
+}
+.sb-user { text-align: center; padding: 0 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 6px; }
+.sb-avatar { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.15); margin: 0 auto 5px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+.sb-name { color: white; font-size: 10px; font-weight: 600; }
+.nav-item { padding: 8px 12px; color: rgba(255,255,255,0.75); font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 7px; border-left: 3px solid transparent; }
+.nav-item.active { background: rgba(255,255,255,0.12); color: white; border-left-color: #00cccc; }
+.sb-logout { background: #cc3333; color: white; padding: 8px 12px; font-size: 11px; font-weight: 700; text-align: center; }
+
+/* ===== TABLE ===== */
+.mock-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.mock-table th { background: #006666; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
+.mock-table td { padding: 6px 8px; border-bottom: 1px solid #eee; color: #333; font-size: 10px; }
+.mock-table tr:nth-child(even) td { background: #f0f8f8; }
+
+/* ===== BUTTONS ===== */
+.btn-primary { background: #006666; color: white; border: none; border-radius: 6px; padding: 8px 18px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.btn-outline { background: white; color: #333; border: 1.5px solid #aaa; border-radius: 6px; padding: 8px 14px; font-size: 12px; cursor: pointer; }
+.btn-danger { background: #cc3333; color: white; border: none; border-radius: 5px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-success { background: #2e7d32; color: white; border: none; border-radius: 5px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-orange { background: #e67e22; color: white; border: none; border-radius: 5px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-blue { background: #1565c0; color: white; border: none; border-radius: 5px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+/* ===== FORM ===== */
+.mock-field {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid #006666;
+  padding: 5px 6px;
+  font-size: 12px;
+  outline: none;
+  background: transparent;
+  color: #333;
+}
+.form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.form-label { width: 140px; font-size: 11px; color: #555; text-align: right; flex-shrink: 0; }
+
+/* ===== STATUS BADGES ===== */
+.s-consult { display: inline-block; background: #e0f8f0; color: #0a6640; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.s-attente { display: inline-block; background: #fff3cd; color: #856404; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+
+/* ===========================
+   SCENE 0 — INTRO
+=========================== */
+#s0 { background: linear-gradient(135deg, #0a1628 0%, #003333 100%); text-align: center; }
+.intro-logo { width: 80px; height: 80px; background: #006666; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 18px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,204,204,0.4)} 50%{box-shadow:0 0 0 18px rgba(0,204,204,0)} }
+.intro-title { font-size: 30px; font-weight: 800; color: white; margin-bottom: 6px; }
+.intro-sub { font-size: 14px; color: rgba(255,255,255,0.55); margin-bottom: 24px; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.badge { background: rgba(0,102,102,0.35); border: 1px solid rgba(0,204,204,0.3); color: #00cccc; border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 600; }
+
+/* ===========================
+   SCENE 1 — LOGIN
+=========================== */
+.login-body { display: flex; min-height: 300px; }
+.login-left { background: linear-gradient(155deg, #006666 0%, #002020 100%); width: 35%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+.login-left .bienv { font-style: italic; font-size: 20px; font-weight: 700; }
+.login-left .sub { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+.login-right { flex: 1; padding: 28px 30px; display: flex; flex-direction: column; align-items: center; position: relative; }
+.login-title { font-size: 22px; font-weight: 800; color: #1e2832; margin-bottom: 20px; }
+.lang-pill { position: absolute; top: 10px; right: 10px; border: 1.5px solid #006666; border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #006666; }
+.field-row { width: 100%; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.field-icon { font-size: 16px; }
+
+/* ===========================
+   SCENE 2 — HOMEPAGE
+=========================== */
+.main-area { flex: 1; background: #f5f8fa; padding: 12px; overflow: hidden; position: relative; }
+.search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.search-label { font-size: 12px; color: #333; font-weight: 700; }
+.search-inp { border: none; border-bottom: 1.5px solid #006666; padding: 4px 6px; font-size: 11px; outline: none; width: 120px; background: transparent; }
+.add-patient-btn { margin-left: auto; background: #006666; color: white; border: none; border-radius: 5px; padding: 6px 10px; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.waiting-box { position: absolute; right: 0; top: 0; bottom: 0; width: 90px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; text-align: center; }
+.w-count { font-size: 30px; font-weight: 800; color: #006666; }
+.w-label { font-size: 9px; color: #888; }
+.w-title { font-size: 10px; font-weight: 700; color: #333; margin-bottom: 4px; }
+.voir-btn { margin-top: 8px; border: 1px solid #aaa; border-radius: 4px; padding: 3px 8px; font-size: 10px; color: #555; cursor: pointer; background: white; }
+
+/* ===========================
+   SCENE 3 — PATIENT FORM
+=========================== */
+.patient-body { padding: 20px 30px; background: white; }
+.patient-title { font-size: 17px; font-weight: 800; color: #1e2832; text-align: center; margin-bottom: 18px; }
+.sex-btns { display: flex; gap: 8px; }
+.sex-btn { padding: 6px 16px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; }
+.sex-btn.sel { background: #006666; color: white; border: 2px solid #006666; }
+.sex-btn.unsel { background: white; color: #006666; border: 2px solid #006666; }
+.blood-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.blood-chip { font-size: 11px; color: #333; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+/* ===========================
+   SCENE 4 — RDV
+=========================== */
+.rdv-left { width: 210px; min-width: 210px; padding: 14px; border-right: 1px solid #eee; background: white; }
+.rdv-title { font-size: 15px; font-weight: 800; color: #006666; margin-bottom: 12px; }
+.patient-listbox { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; margin-bottom: 10px; max-height: 100px; overflow-y: auto; }
+.pli { padding: 5px 8px; font-size: 11px; color: #333; border-bottom: 1px solid #eee; cursor: pointer; }
+.pli.sel { background: #e0f0f0; color: #006666; font-weight: 700; }
+.date-row { display: flex; gap: 4px; margin-bottom: 10px; }
+.date-row select { flex: 1; font-size: 10px; border: 1px solid #006666; border-radius: 3px; padding: 3px; }
+.rdv-right { flex: 1; background: #f5f8fa; padding: 12px; }
+.rdv-filter-row { display: flex; gap: 5px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.rdv-filter-row select { font-size: 10px; border: 1px solid #ddd; border-radius: 3px; padding: 3px; }
+
+/* ===========================
+   SCENE 5 — SALLE ATTENTE
+=========================== */
+.waiting-main { flex: 1; padding: 12px; background: white; }
+.waiting-title { font-size: 16px; font-weight: 800; color: #006666; margin-bottom: 10px; }
+.waiting-hdr { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.waiting-inp { border: none; border-bottom: 1.5px solid #006666; padding: 3px 6px; font-size: 11px; flex: 1; outline: none; }
+.waiting-side { width: 100px; background: linear-gradient(180deg, #006666 0%, #004444 100%); display: flex; flex-direction: column; align-items: center; padding: 14px 6px; gap: 10px; }
+.ws-title { color: white; font-size: 11px; font-weight: 700; text-align: center; }
+.ws-count { font-size: 34px; font-weight: 800; color: #00ffcc; }
+.ws-lbl { color: rgba(255,255,255,0.7); font-size: 9px; text-align: center; }
+.ws-btn { width: 86px; border: none; border-radius: 5px; padding: 8px 4px; font-size: 10px; font-weight: 700; cursor: pointer; text-align: center; color: white; }
+.ws-btn.orange { background: #e67e22; }
+.ws-btn.red { background: #cc3333; }
+.ws-btn.gray { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); }
+
+/* ===========================
+   SCENE 6 — CONSULTATION
+=========================== */
+.consult-sb { width: 130px; min-width: 130px; background: linear-gradient(180deg, #002b3a 0%, #001e2d 100%); padding: 12px 8px; display: flex; flex-direction: column; align-items: center; }
+.pat-avatar { width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.1); margin: 0 auto 5px; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+.pat-name { color: white; font-size: 11px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+.pat-info { color: rgba(255,255,255,0.65); font-size: 10px; margin-bottom: 3px; width: 100%; }
+.consult-main2 { flex: 1; display: flex; flex-direction: column; background: #f5f8fa; }
+.tabs { display: flex; background: white; border-bottom: 1px solid #ddd; }
+.tab { padding: 9px 14px; font-size: 11px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; }
+.tab.active { color: #006666; border-bottom-color: #006666; font-weight: 700; }
+.consult-inner { padding: 10px; flex: 1; }
+.hist-title { font-size: 12px; font-weight: 700; color: #006666; margin-bottom: 8px; }
+.new-consult { background: white; border-radius: 6px; padding: 12px; margin-top: 8px; }
+.new-title { font-size: 11px; font-weight: 700; color: #333; margin-bottom: 8px; }
+.cfields { display: flex; gap: 8px; margin-bottom: 8px; }
+.cfield-wrap { flex: 1; }
+.cfield-label { font-size: 10px; color: #888; margin-bottom: 3px; }
+.cfield { width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 5px; font-size: 10px; min-height: 55px; resize: none; outline: none; font-family: inherit; }
+.cactions { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* ===========================
+   SCENE 7 — ORDONNANCE
+=========================== */
+.ordo-left { width: 185px; min-width: 185px; background: white; padding: 12px; border-right: 1px solid #ddd; }
+.ordo-section { margin-bottom: 10px; }
+.ordo-lbl { font-size: 10px; color: #888; margin-bottom: 3px; }
+.ordo-val { font-size: 11px; color: #333; border-bottom: 1.5px solid #006666; padding: 3px 0; }
+.ordo-ta { width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 5px; font-size: 10px; min-height: 80px; resize: none; outline: none; font-family: inherit; }
+.ordo-right { flex: 1; background: #f5f8fa; padding: 12px; }
+.preview-lbl { font-size: 11px; color: #888; margin-bottom: 8px; }
+.ordo-paper { background: white; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+.ordo-hdr { background: #006666; color: white; padding: 10px 12px; }
+.ordo-hdr-name { font-size: 14px; font-weight: 800; }
+.ordo-hdr-sub { font-size: 10px; opacity: 0.8; }
+.ordo-body2 { padding: 10px 12px; }
+.ordo-center { text-align: center; font-size: 11px; font-weight: 700; color: #333; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+.ordo-info2 { display: flex; gap: 16px; margin-bottom: 8px; }
+.ordo-info2 span { font-size: 10px; color: #333; }
+.ordo-info2 b { font-weight: 700; }
+.presc-lbl { font-size: 11px; font-weight: 700; color: #333; margin-bottom: 4px; }
+.presc-text { font-size: 10px; color: #555; min-height: 40px; line-height: 1.6; }
+.sig-area { text-align: right; margin-top: 8px; font-size: 10px; color: #888; }
+.ordo-footer2 { background: #006666; color: rgba(255,255,255,0.85); padding: 6px 12px; font-size: 10px; display: flex; justify-content: space-between; }
+
+/* ===========================
+   SCENE 8 — OUTRO
+=========================== */
+#s8 { background: linear-gradient(135deg, #0a1628 0%, #003333 100%); text-align: center; }
+.outro-title { font-size: 26px; font-weight: 800; color: white; margin-bottom: 8px; }
+.outro-sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 24px; }
+.feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; max-width: 420px; margin: 0 auto 20px; }
+.feat-card { background: rgba(0,102,102,0.25); border: 1px solid rgba(0,204,204,0.2); border-radius: 8px; padding: 12px 6px; text-align: center; }
+.feat-icon { font-size: 22px; margin-bottom: 5px; }
+.feat-name { font-size: 11px; color: rgba(255,255,255,0.85); font-weight: 700; }
+.outro-ver { font-size: 11px; color: rgba(255,255,255,0.3); }
+
+/* ===== CURSOR ===== */
+#cursor {
+  position: fixed;
+  width: 18px; height: 18px;
+  background: rgba(0,204,204,0.85);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: left 0.55s cubic-bezier(.4,0,.2,1), top 0.55s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 0 0 5px rgba(0,204,204,0.2);
+  display: none;
+}
+
+@keyframes row-flash { 0%{background:#d0f4ee} 100%{background:transparent} }
+.flash { animation: row-flash 1.4s ease forwards; }
+</style>
+</head>
+<body>
+
+<div id="root">
+  <div id="progress-bar" style="width:0%"></div>
+  <div id="dots"></div>
+  <button id="nav-prev">&#9664;</button>
+  <button id="nav-next">&#9654;</button>
+  <button id="pause-btn">⏸ Pause</button>
+  <div id="cursor"></div>
+
+  <!-- SCENE 0: INTRO -->
+  <div class="scene active" id="s0">
+    <div class="intro-logo">🏥</div>
+    <div class="intro-title">Cabinet Médical</div>
+    <div class="intro-sub">Système de gestion complet — Version 1.0.0</div>
+    <div class="badges">
+      <div class="badge">🔐 Authentification</div>
+      <div class="badge">👤 Patients</div>
+      <div class="badge">📅 Rendez-vous</div>
+      <div class="badge">🏥 Consultations</div>
+      <div class="badge">📋 Ordonnances</div>
+      <div class="badge">📱 SMS Rappel</div>
+    </div>
+  </div>
+
+  <!-- SCENE 1: LOGIN -->
+  <div class="scene" id="s1">
+    <div class="scene-badge">① Connexion</div>
+    <div class="win">
+      <div class="win-bar">
+        <div class="wb wb-r"></div><div class="wb wb-y"></div><div class="wb wb-g"></div>
+        <div class="win-bar-title">Cabinet Médical - LOGIN</div>
+      </div>
+      <div class="login-body">
+        <div class="login-left">
+          <div class="bienv">Bienvenue</div>
+          <div class="sub">chez notre cabinet</div>
+        </div>
+        <div class="login-right">
+          <div class="lang-pill">🌐 FR</div>
+          <div class="login-title">LOGIN</div>
+          <div class="field-row">
+            <span class="field-icon">👤</span>
+            <input class="mock-field" id="f-user" placeholder="Email ou nom d'utilisateur" readonly value="">
+          </div>
+          <div class="field-row">
+            <span class="field-icon">🔒</span>
+            <input class="mock-field" id="f-pass" placeholder="Mot de passe" type="password" readonly value="">
+          </div>
+          <div style="font-size:11px;color:#888;margin-bottom:10px;align-self:flex-start">J'ai oublié mon mot de passe</div>
+          <button class="btn-primary" id="login-btn" style="padding:9px 36px">log-in</button>
+          <div style="font-size:11px;color:#aaa;margin-top:10px">pour créer un compte cliquer sur <span style="color:#006666;font-weight:700">« Sign Up »</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 2: HOMEPAGE -->
+  <div class="scene" id="s2">
+    <div class="scene-badge">② Accueil — Liste patients</div>
+    <div class="win">
+      <div class="win-bar">
+        <div class="wb wb-r"></div><div class="wb wb-y"></div><div class="wb wb-g"></div>
+        <div class="win-bar-title">Cabinet Médical - Iouai Belmeguenai</div>
+      </div>
+      <div class="app-layout" style="height:320px">
+        <div class="sidebar">
+          <div class="sb-user">
+            <div class="sb-avatar">🩺</div>
+            <div class="sb-name">Iouai Belmeguenai</div>
+          </div>
+          <div class="nav-item active">🏠 Accueil</div>
+          <div class="nav-item">👤 Patient</div>
+          <div class="nav-item">🩺 Consultation</div>
+          <div class="nav-item">⏳ Salle D'attente</div>
+          <div class="nav-item">📅 Rendez-vous</div>
+          <div style="border-top:1px solid rgba(255,255,255,0.15);margin:6px 0"></div>
+          <div class="nav-item" style="font-size:10px">🌐 Langue</div>
+          <div class="nav-item" style="font-size:10px">⚙️ Paramètres</div>
+          <div class="sb-logout" style="position:absolute;bottom:0;width:100%">🚪 Déconnexion</div>
+        </div>
+        <div class="main-area">
+          <div class="search-row">
+            <span class="search-label">Recherch:</span>
+            <input class="search-inp" placeholder="">
+            <button class="add-patient-btn">+ Ajouter un nouveau patient</button>
+          </div>
+          <table class="mock-table">
+            <thead>
+              <tr><th>id</th><th>Nom</th><th>Prénom</th><th>Num sécurité</th><th>Num tél</th><th>Sex</th><th>Age</th><th>groupage</th></tr>
+            </thead>
+            <tbody id="home-tbody">
+              <tr><td>1</td><td>Benali</td><td>Ahmed</td><td>1234567890</td><td>+213555000001</td><td>Homme</td><td>35</td><td>A+</td></tr>
+              <tr><td>6</td><td>boughazi</td><td>mohamed</td><td>121365489740</td><td>0658914572</td><td>Homme</td><td>20</td><td>O+</td></tr>
+              <tr><td>2</td><td>Bouzid</td><td>Fatima</td><td>0987654321</td><td>+213555000002</td><td>Femme</td><td>28</td><td>B+</td></tr>
+              <tr><td>14</td><td>djefall</td><td>lina</td><td>25647891321</td><td>+213056563247</td><td>Femme</td><td>16</td><td>O+</td></tr>
+              <tr><td>13</td><td>louai</td><td>belmeguenai</td><td>201364578</td><td>+2130556566235</td><td>Homme</td><td>19</td><td>A+</td></tr>
+            </tbody>
+          </table>
+          <div class="waiting-box">
+            <div class="w-title">Salle d'attente</div>
+            <div class="w-count">4</div>
+            <div class="w-label">patients</div>
+            <button class="voir-btn">Voir →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3: PATIENT FORM -->
+  <div class="scene" id="s3">
+    <div class="scene-badge">③ Ajout d'un nouveau patient</div>
+    <div class="win">
+      <div class="win-bar">
+        <div class="wb wb-r"></div><div class="wb wb-y"></div><div class="wb wb-g"></div>
+        <div class="win-bar-title">Cabinet Médical - information du patient</div>
+      </div>
+      <div class="patient-body">
+        <div class="patient-title">information du patient</div>
+        <div class="form-row"><div class="form-label">Nom</div><input class="mock-field" id="p-nom" value=""></div>
+        <div class="form-row"><div class="form-label">Prénom</div><input class="mock-field" id="p-prenom" value=""></div>
+        <div class="form-row"><div class="form-label">N° sécurité sociale</div><input class="mock-field" id="p-num" value=""></div>
+        <div class="form-row"><div class="form-label">Numéro de téléphone</div><input class="mock-field" id="p-tel" value=""></div>
+        <div class="form-row"><div class="form-label">Age</div><input class="mock-field" id="p-age" value="" style="max-width:70px"></div>
+        <div class="form-row">
+          <div class="form-label">Sex</div>
+          <div class="sex-btns">
+            <button class="sex-btn sel">♂ Homme</button>
+            <button class="sex-btn unsel">♀ Femme</button>
+          </div>
+        </div>
+        <div class="form-row" style="align-items:flex-start">
+          <div class="form-label" style="padding-top:4px">Groupage</div>
+          <div class="blood-row">
+            <label class="blood-chip"><input type="radio" name="bg" checked> A+</label>
+            <label class="blood-chip"><input type="radio" name="bg"> O+</label>
+            <label class="blood-chip"><input type="radio" name="bg"> AB+</label>
+            <label class="blood-chip"><input type="radio" name="bg"> B+</label>
+            <label class="blood-chip"><input type="radio" name="bg"> A-</label>
+            <label class="blood-chip"><input type="radio" name="bg"> O-</label>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:12px;margin-top:14px">
+          <button class="btn-outline">← Retour</button>
+          <button class="btn-primary">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 4: RENDEZ-VOUS -->
+  <div class="scene" id="s4">
+    <div class="scene-badge">④ Gestion des rendez-vous</div>
+    <div class="win">
+      <div class="win-bar">
+        <div class="wb wb-r"></div><div class="wb wb-y"></div><div class="wb wb-g"></div>
+        <div class="win-bar-title">Cabinet Médical - Rendez-vous</div>
+      </div>
+      <div class="app-layout" style="height:320px">
+        <div class="rdv-left">
+          <div class="rdv-title">Rendez-vous</div>
+          <div style="font-size:11px;color:#888;margin-bottom:5px">Patient (rechercher):</div>
+          <div class="patient-listbox">
+            <div class="pli sel">1 - Benali Ahmed</div>
+            <div class="pli">6 - boughazi mohamed</div>
+            <div class="pli">2 - Bouzid Fatima</div>
+            <div class="pli">14 - djefall lina</div>
+          </div>
+          <div style="font-size:11px;color:#555;margin-bottom:4px">Date du rendez-vous:</div>
+          <div class="date-row">
+            <select><option>2026</option></select>
+            <select><option>05</option></select>
+            <select><option>09</option></select>
+            <select><option>08:00</option></select>
+          </div>
+          <button class="btn-primary" style="width:100%;margin-bottom:6px;font-size:11px">Enregistrer</button>
+          <button class="btn-outline" style="width:100%;font-size:11px">← Retour</button>
+          <button class="btn-success" style="width:100%;margin-top:8px;font-size:11px;padding:7px;border-radius:5px">📱 Envoyer SMS de rappel</button>
+        </div>
+        <div class="rdv-right">
+          <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:8px">Liste des rendez-vous</div>
+          <div class="rdv-filter-row">
+            <span style="font-size:10px;color:#555">📅 Date:</span>
+            <select><option>2026</option></select>
+            <select><option>05</option></select>
+            <select><option>09</option></select>
+            <button class="btn-primary" style="font-size:10px;padding:3px 8px">🔍 Filtrer</button>
+            <button class="btn-outline" style="font-size:10px;padding:3px 8px">Tous</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <button class="btn-danger" style="font-size:10px;padding:4px 8px">🗑 Supprimer</button>
+            <button class="btn-orange" style="font-size:10px;padding:4px 8px">→ Salle d'attente</button>
+          </div>
+          <table class="mock-table">
+            <thead><tr><th>ID</th><th>Patient</th><th>Date</th><th>Heure</th><th>Statut</th><th>SMS</th></tr></thead>
+            <tbody id="rdv-tbody">
+              <tr id="rdv-new" style="display:none"><td>10</td><td>Benali Ahmed</td><td>2026-05-09</td><td>08:00</td><td>planifié</td><td>X</td></tr>
+              <tr><td>9</td><td>djefall lina</td><td>2026-06-09</td><td>08:00</td><td>planifié</td><td>X</td></tr>
+              <tr><td>8</td><td>boughazi m.</td><td>2026-05-08</td><td>08:00</td><td>planifié</td><td>X</td></tr>
+              <tr><td>7</td><td>louai b.</td><td>2026-05-07</td><td>23:00</td><td>confirmé</td><td>X</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 5: SALLE D'ATTENTE -->
+  <div class="scene" id="s5">
+    <div class="scene-badge">⑤ Salle d'attente</div>
+    <div class="win">
+      <div class="win-bar">
+        <div class="wb wb-r"></div><div class="wb wb-y"></div><div class="wb wb-g"></div>
+        <div class="win-bar-title">Cabinet Médical - Salle d'attente</div>
+      </div>
+      <div class="app-layout" style="height:320px">
+        <div class="waiting-main">
+          <div class="waiting-title">Salle d'attente</div>
+          <div class="waiting-hdr">
+            <span style="font-size:11px;color:#555">🔍 Patient:</span>
+            <input class="waiting-inp" value="">
+            <button class="btn-primary" style="font-size:10px;padding:5px 10px">+ Ajouter à la salle</button>
+          </div>
+          <table class="mock-table">
+            <thead><tr><th>ID</th><th>Nom</th><th>Prénom</th><th>Téléphone</th><th>Heure arrivée</th><th>Statut</th></tr></thead>
+            <tbody id="waiting-tbody">
+              <tr><td>1</td><td>Benali</td><td>Ahmed</td><td>+213555000001</td><td>14:44:23</td><td><span class="s-consult">en_consultation</span></td></tr>
+              <tr><td>14</td><td>djefall</td><td>lina</td><td>+213056563247</td><td>14:44:30</td><td><span class="s-consult">en_consultation</span></td></tr>
+              <tr id="karim-row"><td>3</td><td>Merabti</td><td>Karim</td><td>+213555000003</td><td>14:44:33</td><td><span class="s-attente">en_attente</span></td></tr>
+              <tr><td>15</td><td>zaki</td><td>bouziyan</td><td>23654956269</td><td>14:44:40</td><td><span class="s-attente">en_attente</span></td></tr>
+              <tr><td>13</td><td>louai</td><td>belmeguenai</td><td>+2130556566235</td><td>23:19:16</td><td><span class="s-attente">en_attente</span></td></tr>
+            </tbody>
+          </table>
+          <div style="font-size:10px;color:#888;margin-top:6px">Double-clic pour ouvrir la consultation | Actualisation auto toutes les 30s</div>
+        </div>
+        <div class="waiting-side">
+          <div class="ws-title">Salle d'attente</div>
+          <div class="ws-count" id="ws-cnt">3</div>
+          <div class="ws-lbl">Patients en attente</div>
+          <button class="ws-btn orange">↪ Appeler le prochain</button>
+          <button class="ws-btn red">✕ Retirer</button>
+          <button class="ws-btn gray" style="margin-top:auto">← Retourner</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 6: CONSULTATION -->
+  <div class="scene" id="s6">
+    <div class="scene-badge">⑥ Dossier médical & consultation</div>
+    <div class="win">
+      <div class="win-bar">
+        <div class="wb wb-r"></div><div class="wb wb-y"></div><div class="wb wb-g"></div>
+        <div class="win-bar-title">Cabinet Médical - Consultation: Ahmed Benali</div>
+      </div>
+      <div class="app-layout" style="height:360px">
+        <div class="consult-sb">
+          <div class="pat-avatar">👤</div>
+          <div class="pat-name">Ahmed Benali</div>
+          <div class="pat-info">🎂 Âge: <b style="color:white">35 ans</b></div>
+          <div class="pat-info">🩸 Groupe: <b style="color:white">A+</b></div>
+          <div class="pat-info">📞 <b style="color:white;font-size:9px">+213555000001</b></div>
+          <button style="margin-top:10px;background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:4px;padding:5px 6px;font-size:10px;cursor:pointer;width:100%">→ Modifier fiche</button>
+          <button style="margin-top:auto;background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:4px;padding:5px 6px;font-size:10px;cursor:pointer;width:100%">← Retour</button>
+        </div>
+        <div class="consult-main2">
+          <div class="tabs">
+            <div class="tab active">📋 Dossier Médical</div>
+            <div class="tab">🗒 Ordonnance</div>
+          </div>
+          <div class="consult-inner">
+            <div class="hist-title">📋 Historique des consultations</div>
+            <table class="mock-table" style="font-size:10px;margin-bottom:8px">
+              <thead><tr><th>ID</th><th>Date</th><th>Diagnostic</th><th>Traitement</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td>12</td><td>2026-05-09</td><td>Rhinopharyngite</td><td>Paracétamol 1g</td><td>—</td></tr>
+                <tr><td>14</td><td>2026-05-09</td><td>—</td><td>Ibuprofène</td><td>—</td></tr>
+              </tbody>
+            </table>
+            <div class="new-consult">
+              <div class="new-title">Nouvelle consultation — 2026-05-09</div>
+              <div class="cfields">
+                <div class="cfield-wrap"><div class="cfield-label">🔍 Diagnostic</div><textarea class="cfield" id="c-diag" placeholder="Entrez le diagnostic..."></textarea></div>
+                <div class="cfield-wrap"><div class="cfield-label">💊 Traitement</div><textarea class="cfield" id="c-trait" placeholder="Traitement prescrit..."></textarea></div>
+                <div class="cfield-wrap"><div class="cfield-label">📝 Notes</div><textarea class="cfield" id="c-notes" placeholder="Notes..."></textarea></div>
+              </div>
+              <div class="cactions">
+                <button class="btn-danger" style="font-size:10px;padding:5px 10px">🗑 Supprimer</button>
+                <button class="btn-outline" style="font-size:10px;padding:5px 10px">+ Nouvelle</button>
+                <button class="btn-orange" style="font-size:10px;padding:5px 10px">🗒 Ordonnance</button>
+                <button class="btn-primary" style="font-size:10px;padding:5px 12px">💾 Enregistrer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 7: ORDONNANCE -->
+  <div class="scene" id="s7">
+    <div class="scene-badge">⑦ Rédaction de l'ordonnance</div>
+    <div class="win">
+      <div class="win-bar">
+        <div class="wb wb-r"></div><div class="wb wb-y"></div><div class="wb wb-g"></div>
+        <div class="win-bar-title">Cabinet Médical - Ordonnance: Ahmed Benali</div>
+      </div>
+      <div class="app-layout" style="height:360px">
+        <div class="ordo-left">
+          <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px">🗒 Paramètres ordonnance</div>
+          <div class="ordo-section">
+            <div class="ordo-lbl">Consultation liée:</div>
+            <div class="ordo-val">-- Consultation actuelle --</div>
+          </div>
+          <div class="ordo-section">
+            <div class="ordo-lbl">Date:</div>
+            <div class="ordo-val">2026-05-09</div>
+          </div>
+          <div class="ordo-section">
+            <div class="ordo-lbl">Nom du cabinet:</div>
+            <div class="ordo-val">Cabinet Médical</div>
+          </div>
+          <div class="ordo-section">
+            <div class="ordo-lbl">Médicaments / Posologie:</div>
+            <div style="font-size:9px;color:#aaa;margin-bottom:3px">Ex: Paracétamol 1g — 3×/jour...</div>
+            <textarea class="ordo-ta" id="ordo-ta">Amoxicilline 500mg — 3×/jour
+Ibuprofène 400mg — 2×/jour
+Vitamine D3 — 1×/jour</textarea>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+            <button class="btn-primary" style="padding:7px;font-size:11px">💾 Sauvegarder</button>
+            <button class="btn-blue" style="padding:7px;font-size:11px">🖨 Imprimer</button>
+          </div>
+        </div>
+        <div class="ordo-right">
+          <div class="preview-lbl">👁 Aperçu de l'ordonnance</div>
+          <div class="ordo-paper">
+            <div class="ordo-hdr">
+              <div class="ordo-hdr-name">Cabinet Médical</div>
+              <div class="ordo-hdr-sub">Dr. Iouai Belmeguenai</div>
+            </div>
+            <div class="ordo-body2">
+              <div class="ordo-center">ORDONNANCE MÉDICALE</div>
+              <div class="ordo-info2">
+                <span><b>Patient:</b> Ahmed Benali</span>
+                <span><b>Âge:</b> 35 ans</span>
+              </div>
+              <div class="ordo-info2">
+                <span><b>Date:</b> 2026-05-09</span>
+                <span><b>Groupe:</b> A+</span>
+              </div>
+              <div class="presc-lbl">Prescription:</div>
+              <div class="presc-text" id="ordo-preview">
+                Amoxicilline 500mg — 3×/jour<br>
+                Ibuprofène 400mg — 2×/jour<br>
+                Vitamine D3 — 1×/jour
+              </div>
+              <div class="sig-area">Signature & Cachet<br><span style="font-size:11px;color:#555">Dr. Iouai Belmeguenai</span></div>
+            </div>
+            <div class="ordo-footer2">
+              <span>Cabinet Médical | 2026-05-09</span>
+              <span style="font-style:italic;opacity:0.7">Signature & Cachet</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 8: OUTRO -->
+  <div class="scene" id="s8">
+    <div class="outro-title">Cabinet Médical</div>
+    <div class="outro-sub">Version 1.0.0 — Système de gestion complet pour cabinet médical</div>
+    <div class="feat-grid">
+      <div class="feat-card"><div class="feat-icon">🔐</div><div class="feat-name">Login sécurisé</div></div>
+      <div class="feat-card"><div class="feat-icon">👤</div><div class="feat-name">Gestion patients</div></div>
+      <div class="feat-card"><div class="feat-icon">📅</div><div class="feat-name">Rendez-vous</div></div>
+      <div class="feat-card"><div class="feat-icon">⏳</div><div class="feat-name">Salle d'attente</div></div>
+      <div class="feat-card"><div class="feat-icon">🩺</div><div class="feat-name">Consultations</div></div>
+      <div class="feat-card"><div class="feat-icon">📋</div><div class="feat-name">Ordonnances</div></div>
+    </div>
+    <div class="outro-ver">Développé par Iouai Belmeguenai • 2026</div>
+  </div>
+
+</div>
+
+<script>
+const TOTAL = 9;
+const DURS = [4000,5000,5000,5500,5000,5000,5500,5500,5000];
+let cur = 0, paused = false, elapsed = 0, lastTick = null, rafId = null;
+
+const cursor = document.getElementById('cursor');
+
+// Build dots
+const dotsEl = document.getElementById('dots');
+for (let i = 0; i < TOTAL; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===0?' active':'');
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+}
+
+function updateDots() {
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===cur));
+}
+
+function updateProgress(pct) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function showScene(idx) {
+  document.querySelectorAll('.scene').forEach((s,i) => s.classList.toggle('active', i===idx));
+  updateDots();
+  updateProgress(0);
+  elapsed = 0;
+  runAnim(idx);
+}
+
+function goTo(idx) {
+  cur = Math.max(0, Math.min(TOTAL-1, idx));
+  cancelAnimationFrame(rafId);
+  showScene(cur);
+  if (!paused) startTimer();
+}
+
+function startTimer() {
+  cancelAnimationFrame(rafId);
+  lastTick = Date.now();
+  const dur = DURS[cur];
+  function tick() {
+    if (paused) return;
+    const now = Date.now();
+    elapsed += now - lastTick;
+    lastTick = now;
+    const pct = Math.min(100, elapsed/dur*100);
+    updateProgress(pct);
+    if (elapsed >= dur) {
+      if (cur < TOTAL-1) { cur++; showScene(cur); startTimer(); }
+      else updateProgress(100);
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+function moveCursor(x, y) {
+  cursor.style.display = 'block';
+  cursor.style.left = x + 'px';
+  cursor.style.top = y + 'px';
+}
+function hideCursor() { cursor.style.display = 'none'; }
+
+function typeInto(el, text, speed, cb) {
+  el.value = '';
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i < text.length) el.value += text[i++];
+    else { clearInterval(iv); if (cb) cb(); }
+  }, speed);
+}
+
+function getCenter(el) {
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width/2, y: r.top + r.height/2 };
+}
+
+function runAnim(idx) {
+  hideCursor();
+  if (idx===1) animLogin();
+  if (idx===2) animHome();
+  if (idx===3) animPatient();
+  if (idx===4) animRDV();
+  if (idx===5) animWaiting();
+  if (idx===6) animConsult();
+  if (idx===7) animOrdo();
+}
+
+function animLogin() {
+  const uf = document.getElementById('f-user');
+  const pf = document.getElementById('f-pass');
+  const btn = document.getElementById('login-btn');
+  uf.value=''; pf.value='';
+  setTimeout(() => {
+    const c = getCenter(uf);
+    moveCursor(c.x, c.y);
+    typeInto(uf, 'louai@cabinet.dz', 80, () => {
+      setTimeout(() => {
+        const c2 = getCenter(pf);
+        moveCursor(c2.x, c2.y);
+        typeInto(pf, '••••••••', 100, () => {
+          setTimeout(() => {
+            const cb = getCenter(btn);
+            moveCursor(cb.x, cb.y);
+            btn.style.background='#008888';
+            setTimeout(() => { btn.style.background='#006666'; hideCursor(); }, 500);
+          }, 600);
+        });
+      }, 400);
+    });
+  }, 800);
+}
+
+function animHome() {
+  const rows = document.querySelectorAll('#home-tbody tr');
+  let d = 400;
+  rows.forEach(r => {
+    setTimeout(() => {
+      r.classList.add('flash');
+      setTimeout(() => r.classList.remove('flash'), 1400);
+    }, d);
+    d += 380;
+  });
+}
+
+function animPatient() {
+  const nom = document.getElementById('p-nom');
+  const prenom = document.getElementById('p-prenom');
+  nom.value=''; prenom.value='';
+  setTimeout(() => {
+    const c = getCenter(nom);
+    moveCursor(c.x, c.y);
+    typeInto(nom, 'Merabti', 90, () => {
+      const c2 = getCenter(prenom);
+      moveCursor(c2.x, c2.y);
+      typeInto(prenom, 'Karim', 90, () => {
+        document.getElementById('p-num').value = '1122334455';
+        document.getElementById('p-tel').value = '+213555000003';
+        document.getElementById('p-age').value = '45';
+        hideCursor();
+      });
+    });
+  }, 600);
+}
+
+function animRDV() {
+  setTimeout(() => {
+    const row = document.getElementById('rdv-new');
+    row.style.display='';
+    row.classList.add('flash');
+    setTimeout(() => row.classList.remove('flash'), 1500);
+  }, 1500);
+}
+
+function animWaiting() {
+  setTimeout(() => {
+    const kr = document.getElementById('karim-row');
+    if (kr) {
+      const sp = kr.querySelector('.s-attente');
+      if (sp) { sp.textContent='en_consultation'; sp.className='s-consult'; }
+      document.getElementById('ws-cnt').textContent='2';
+    }
+  }, 2200);
+}
+
+function animConsult() {
+  const diag = document.getElementById('c-diag');
+  const trait = document.getElementById('c-trait');
+  if (!diag) return;
+  diag.value=''; trait.value='';
+  setTimeout(() => {
+    const c = getCenter(diag);
+    moveCursor(c.x, c.y);
+    typeInto(diag, 'Rhinopharyngite aiguë', 60, () => {
+      const c2 = getCenter(trait);
+      moveCursor(c2.x, c2.y);
+      setTimeout(() => typeInto(trait, 'Amoxicilline 500mg — 3×/j\nParacétamol 1g — si fièvre', 50, () => hideCursor()), 300);
+    });
+  }, 800);
+}
+
+function animOrdo() {
+  const ta = document.getElementById('ordo-ta');
+  const prev = document.getElementById('ordo-preview');
+  if (!ta || !prev) return;
+  ta.value=''; prev.innerHTML='';
+  setTimeout(() => {
+    const c = getCenter(ta);
+    moveCursor(c.x, c.y);
+    let i=0;
+    const txt = 'Amoxicilline 500mg — 3×/jour\nIbuprofène 400mg — 2×/jour\nVitamine D3 — 1×/jour';
+    const iv = setInterval(() => {
+      if (i < txt.length) {
+        ta.value += txt[i++];
+        prev.innerHTML = ta.value.replace(/\n/g,'<br>');
+      } else { clearInterval(iv); hideCursor(); }
+    }, 40);
+  }, 600);
+}
+
+document.getElementById('nav-prev').onclick = () => goTo(cur-1);
+document.getElementById('nav-next').onclick = () => goTo(cur+1);
+document.getElementById('pause-btn').onclick = function() {
+  paused = !paused;
+  this.textContent = paused ? '▶ Play' : '⏸ Pause';
+  if (!paused) { lastTick = Date.now(); startTimer(); }
+};
+
+showScene(0);
+startTimer();
+</script>
+</body>
+</html>
